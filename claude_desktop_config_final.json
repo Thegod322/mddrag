@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "documentation-rag": {
+      "command": "python",
+      "args": ["C:\\ClaudeHub\\MCP\\DoumentationRag\\run_server_simple.py"],
+      "cwd": "C:\\ClaudeHub\\MCP\\DoumentationRag"
+    }
+  }
+}
