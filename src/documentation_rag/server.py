@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Documentation RAG MCP Server
+Documentation RAG MCP Server (Simplified)
 
-This server provides RAG capabilities for Obsidian Canvas-based modular documentation.
-It can parse Canvas files, index their content, and provide semantic search functionality.
+This server provides a simple RAG interface for LLM agents with 3 core tools:
+1. get_modular_documentation - Parse MDD Canvas files
+2. get_file_content - Read vault files 
+3. search_documentation - Search external docs in ChromaDB
 """
 
 import asyncio
@@ -11,42 +13,34 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
-import chromadb
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
+from mcp.server.lowlevel import NotificationOptions
 from mcp.types import (
-    Resource,
     Tool,
     TextContent,
-    ImageContent,
-    EmbeddedResource,
-    LoggingLevel
 )
-from pydantic import AnyUrl
-from sentence_transformers import SentenceTransformer
 
-from documentation_rag.canvas_parser import CanvasParser
-from documentation_rag.rag_engine import RAGEngine
+from .canvas_parser import CanvasParser
+from .external_docs_engine import ExternalDocsEngine
 
 # Initialize the MCP server
 server = Server("documentation-rag")
 
-# Global variables for RAG engine and configurations
-rag_engine: Optional[RAGEngine] = None
-embedding_model: Optional[SentenceTransformer] = None
-chroma_client: Optional[chromadb.Client] = None
+# Global external docs engine
+external_docs_engine: Optional[ExternalDocsEngine] = None
 
 
 @server.list_tools()
 async def handle_list_tools() -> List[Tool]:
-    """List available tools for documentation RAG."""
+    """List the 3 core RAG tools for LLM agents."""
     return [
         Tool(
             name="get_modular_documentation",
-            description="Parse and retrieve modular documentation from Obsidian Canvas file",
+            description="Parse and retrieve modular documentation from Obsidian Canvas file. Automatically searches for the canvas file recursively in the vault.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -55,8 +49,8 @@ async def handle_list_tools() -> List[Tool]:
                         "description": "Path to the Obsidian vault root directory"
                     },
                     "canvas_file": {
-                        "type": "string", 
-                        "description": "Relative path to the Canvas file from vault root (e.g., 'project.canvas')"
+                        "type": "string",
+                        "description": "Name of the Canvas file (e.g., 'Documentation-rag_MDD.canvas'). The file will be found automatically in the vault."
                     }
                 },
                 "required": ["vault_path", "canvas_file"]
@@ -82,44 +76,21 @@ async def handle_list_tools() -> List[Tool]:
         ),
         Tool(
             name="search_documentation",
-            description="Perform semantic search across indexed documentation",
+            description="Search in external documentation indexed in ChromaDB (libraries, frameworks, tools)",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Search query for finding relevant documentation"
-                    },
-                    "vault_path": {
-                        "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
+                        "description": "Search query in human language"
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Maximum number of results to return (default: 5)",
+                        "description": "Maximum number of results (default: 5)",
                         "default": 5
                     }
                 },
-                "required": ["query", "vault_path"]
-            }
-        ),
-        Tool(
-            name="index_documentation",
-            description="Index all Canvas files and associated documents in the vault for RAG search",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "vault_path": {
-                        "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
-                    },
-                    "force_reindex": {
-                        "type": "boolean",
-                        "description": "Force re-indexing even if index exists (default: false)",
-                        "default": False
-                    }
-                },
-                "required": ["vault_path"]
+                "required": ["query"]
             }
         )
     ]
@@ -127,7 +98,8 @@ async def handle_list_tools() -> List[Tool]:
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle tool calls for documentation RAG operations."""
+    """Handle the 3 core tool calls."""
+    global external_docs_engine
     
     if name == "get_modular_documentation":
         vault_path = arguments["vault_path"]
@@ -135,7 +107,8 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
         
         try:
             parser = CanvasParser(vault_path)
-            canvas_data = parser.parse_canvas_file(canvas_file)
+            # Use new auto-search functionality
+            canvas_data = parser.parse_canvas_auto(canvas_file)
             
             return [TextContent(
                 type="text",
@@ -167,7 +140,6 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
                     text=f"Path is not a file: {file_path}"
                 )]
             
-            # Read file content
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
@@ -182,61 +154,31 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
                 text=f"Error reading file: {str(e)}"
             )]
     
-    elif name == "index_documentation":
-        vault_path = arguments["vault_path"]
-        force_reindex = arguments.get("force_reindex", False)
-        
-        try:
-            # Initialize RAG engine if not already done
-            global rag_engine
-            if not rag_engine:
-                rag_engine = RAGEngine(vault_path)
-            
-            # Index the documentation
-            indexed_count = await rag_engine.index_vault(force_reindex)
-            
-            return [TextContent(
-                type="text",
-                text=f"Successfully indexed {indexed_count} documents from vault: {vault_path}"
-            )]
-            
-        except Exception as e:
-            return [TextContent(
-                type="text",
-                text=f"Error indexing documentation: {str(e)}"
-            )]
-    
     elif name == "search_documentation":
         query = arguments["query"]
-        vault_path = arguments["vault_path"]
         limit = arguments.get("limit", 5)
         
         try:
-            # Initialize RAG engine if not already done
-            global rag_engine
-            if not rag_engine:
-                rag_engine = RAGEngine(vault_path)
-                # Auto-index if no index exists
-                await rag_engine.index_vault()
+            if not external_docs_engine:
+                external_docs_engine = ExternalDocsEngine()
             
-            # Perform search
-            results = await rag_engine.search(query, limit)
+            results = await external_docs_engine.search(query, limit)
             
             if not results:
                 return [TextContent(
                     type="text",
-                    text="No relevant documentation found for your query."
+                    text="No relevant documentation found in external libraries."
                 )]
             
-            # Format results
             formatted_results = []
             for i, result in enumerate(results, 1):
                 formatted_results.append(f"Result {i}:")
-                formatted_results.append(f"Source: {result['source']}")
-                formatted_results.append(f"Content: {result['content']}")
-                formatted_results.append(f"Relevance Score: {result['score']:.3f}")
+                formatted_results.append(f"Source: {result.get('source', 'Unknown')}")
+                formatted_results.append(f"Content: {result.get('content', result.get('text', ''))}")
+                if 'score' in result:
+                    formatted_results.append(f"Relevance Score: {result['score']:.3f}")
                 formatted_results.append("---")
-            
+                
             return [TextContent(
                 type="text",
                 text="\n".join(formatted_results)
@@ -245,13 +187,13 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
         except Exception as e:
             return [TextContent(
                 type="text",
-                text=f"Error searching documentation: {str(e)}"
+                text=f"Error searching external documentation: {str(e)}"
             )]
     
     else:
         return [TextContent(
             type="text",
-            text=f"Unknown tool: {name}"
+            text=f"Unknown tool: {name}. Available tools: get_modular_documentation, get_file_content, search_documentation"
         )]
 
 
@@ -263,10 +205,10 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="documentation-rag",
-                server_version="0.1.0",
+                server_version="1.0.0",
                 capabilities=server.get_capabilities(
-                    notification_options=None,
-                    experimental_capabilities=None,
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities=None
                 )
             )
         )

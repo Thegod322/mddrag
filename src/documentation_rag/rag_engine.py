@@ -175,10 +175,14 @@ class RAGEngine:
                     })
                     ids.append(chunk_id)
         
-        # Batch add to collection
+        # Batch add to collection with embeddings
         if documents:
+            # Generate embeddings for all documents
+            embeddings = self.embedding_model.encode(documents).tolist()
+            
             self.collection.add(
                 documents=documents,
+                embeddings=embeddings,
                 metadatas=metadatas,
                 ids=ids
             )
@@ -219,8 +223,12 @@ class RAGEngine:
             ids.append(chunk_id)
         
         if documents:
+            # Generate embeddings for all documents
+            embeddings = self.embedding_model.encode(documents).tolist()
+            
             self.collection.add(
                 documents=documents,
+                embeddings=embeddings,
                 metadatas=metadatas,
                 ids=ids
             )
@@ -330,9 +338,12 @@ class RAGEngine:
         if self.collection.count() == 0:
             return []
         
+        # Generate embedding for the query
+        query_embedding = self.embedding_model.encode(query).tolist()
+        
         # Perform search
         results = self.collection.query(
-            query_texts=[query],
+            query_embeddings=[query_embedding],
             n_results=limit,
             include=["documents", "metadatas", "distances"]
         )

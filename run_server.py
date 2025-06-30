@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-Launcher script for Documentation RAG MCP Server
+Launcher script for Documentation RAG MCP Server (Unified)
 
-This script can be used to run the MCP server directly for testing
-or as part of Claude Desktop configuration.
+This script launches the unified MCP server that supports both:
+- Obsidian Canvas-based modular documentation (MDD method)  
+- External documentation libraries indexed in ChromaDB
+
+This is the main entry point for the Documentation RAG MCP Server.
 """
 
 import sys
@@ -13,7 +16,7 @@ from pathlib import Path
 src_dir = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_dir))
 
-# Import and run the server
+# Import and run the unified server
 from documentation_rag.server import main
 import asyncio
 

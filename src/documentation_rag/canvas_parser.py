@@ -106,7 +106,49 @@ class CanvasParser:
         
         return result
     
+    def find_canvas_file(self, canvas_filename: str) -> Optional[str]:
+        """
+        Recursively search for a Canvas file by name in the vault.
+        
+        Args:
+            canvas_filename: Name of the canvas file (e.g., "Documentation-rag_MDD.canvas")
+            
+        Returns:
+            Relative path to the first matching canvas file, or None if not found
+        """
+        # Ensure the filename has .canvas extension
+        if not canvas_filename.endswith('.canvas'):
+            canvas_filename += '.canvas'
+        
+        # Search recursively through vault
+        for canvas_path in self.vault_root.rglob(canvas_filename):
+            if canvas_path.is_file():
+                # Return relative path from vault root
+                relative_path = canvas_path.relative_to(self.vault_root)
+                return str(relative_path).replace('\\', '/')
+        
+        return None
 
+    def parse_canvas_auto(self, canvas_filename: str) -> Dict[str, Any]:
+        """
+        Parse Canvas file with automatic file search.
+        
+        Args:
+            canvas_filename: Name of the canvas file (will be found automatically)
+            
+        Returns:
+            Parsed canvas data
+            
+        Raises:
+            ValueError: If canvas file is not found or invalid
+        """
+        # Find the canvas file automatically
+        found_path = self.find_canvas_file(canvas_filename)
+        if not found_path:
+            raise ValueError(f"Canvas file not found: {canvas_filename}")
+        
+        # Use existing parse_canvas_file method with found path
+        return self.parse_canvas_file(found_path)
     
     def _get_node_type_counts(self, nodes: List[Dict]) -> Dict[str, int]:
         """Get count of each node type."""

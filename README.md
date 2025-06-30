@@ -1,178 +1,166 @@
 # Documentation RAG MCP Server
 
-Сервер Model Context Protocol (MCP) для работы с RAG (Retrieval-Augmented Generation) на базе модульной документации из Obsidian Canvas.
+An MCP (Model Context Protocol) server that implements **CRAG (Canvas-Relational Augmented Generation)** - a novel approach to RAG that uses visual Canvas structures with explicit node relationships, rather than traditional text chunking.
 
-## Возможности
+Provides intelligent access to your documentation through three focused tools:
 
-- 📊 **Парсинг Canvas файлов**: Анализ структуры Obsidian Canvas с поддержкой цветового кодирования узлов
-- 🔍 **Семантический поиск**: Индексация и поиск по документации с использованием векторных эмбеддингов
-- 📁 **Чтение файлов**: Получение содержимого файлов из Obsidian vault
-- 🎨 **Модульная документация**: Поддержка структурированной документации с типизированными узлами
+1. **MDD Canvas Parsing** - Parse and understand Obsidian Canvas-based Modular Development Documentation
+2. **File Content Access** - Retrieve content from files referenced in your documentation  
+3. **Semantic Search** - Search across external documentation libraries using AI
 
-## Цветовая схема узлов
+## ✨ Key Features
 
-- **Без цвета (0)**: Референс на переменную или блок информации
-- **Красный (1)**: Сущность / Класс / Страница
-- **Оранжевый (2)**: Пользовательская категория
-- **Желтый (3)**: Пользовательская категория  
-- **Синий (4)**: Действие / Кнопка / Переход
-- **Голубой (5)**: Пользовательская категория
-- **Фиолетовый (6)**: Пользовательская категория
+- **CRAG Architecture**: Visual knowledge mapping through Canvas with explicit relationships
+- **Smart Canvas Parsing**: Understands Obsidian Canvas files with automatic recursive search
+- **MDD Support**: Optimized for Modular Development Documentation workflows
+- **Flexible File Access**: Read any file from your vault with simple file name specification
+- **External Documentation Search**: Search across pre-indexed libraries, frameworks, and tools
+- **Simple UX**: Just specify vault path and file names - the server handles the rest
 
-## Установка
+## 🚀 Quick Installation
 
-1. Убедитесь, что у вас установлен Python 3.8+
+**New users**: See [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) for detailed step-by-step instructions.
 
-2. Установите зависимости:
-```bash
-cd C:\ClaudeHub\MCP\DoumentationRag
-pip install -e .
-```
-
-3. Или установите зависимости напрямую:
-```bash
-pip install mcp chromadb sentence-transformers pydantic
-```
-
-## Настройка MCP
-
-Добавьте сервер в конфигурацию Claude Desktop (`claude_desktop_config.json`):
-
+**Experienced users**: 
+1. Install dependencies: `pip install -r requirements.txt`
+2. Add to Claude Desktop config:
 ```json
 {
   "mcpServers": {
     "documentation-rag": {
       "command": "python",
-      "args": ["-m", "documentation_rag.server"],
-      "cwd": "C:\\ClaudeHub\\MCP\\DoumentationRag\\src"
+      "args": ["C:\\path\\to\\your\\run_server.py"]
     }
   }
 }
 ```
+3. Restart Claude Desktop
 
-## Использование
+## 🛠️ Available Tools
 
-### 1. Получение модульной документации
+The server provides exactly **3 focused tools**:
 
-```python
-# Парсинг Canvas файла
-get_modular_documentation(
-    vault_path="C:\\Path\\To\\Your\\Obsidian\\Vault",
-    canvas_file="project.canvas"
-)
+### 1. `d94_get_modular_documentation`
+Parse and understand Obsidian Canvas files (.canvas) with CRAG and MDD support.
+
+**Parameters:**
+- `vault_path`: Path to your Obsidian vault
+- `canvas_file`: Name of the Canvas file (e.g., "MyProject.canvas")
+
+**CRAG Features**: Extracts not just content, but visual relationships and node positioning for contextual understanding.
+
+**New UX**: Just specify the file name! The server automatically searches your entire vault recursively to find the Canvas file.
+
+### 2. `d94_get_file_content`  
+Read content from any file referenced in your documentation.
+
+**Parameters:**
+- `vault_path`: Path to your Obsidian vault
+- `file_path`: Relative path to the file from vault root
+
+### 3. `d94_search_documentation`
+Semantic search across pre-indexed external documentation.
+
+**Parameters:**
+- `query`: Your search query in natural language
+- `limit`: Maximum number of results (default: 5)
+
+**Pre-indexed libraries**: Godot, and others (expandable)
+
+## 💡 Example Usage
+
+### Parse Your Canvas Documentation
+```
+Parse the canvas file "ProjectDocs.canvas" from my vault at "C:/MyVault"
+```
+The server automatically finds the Canvas file anywhere in your vault structure.
+
+### Read Documentation Files  
+```
+Get the content of "API-Reference.md" from my vault at "C:/MyVault"
 ```
 
-### 2. Чтение файлов
-
-```python
-# Получение содержимого файла
-get_file_content(
-    vault_path="C:\\Path\\To\\Your\\Obsidian\\Vault", 
-    file_path="docs/readme.md"
-)
+### Search External Documentation
+```
+Search for "CharacterBody3D movement" in the documentation
 ```
 
-### 3. Индексация документации
+## 🔧 Technical Details
 
-```python
-# Создание поискового индекса
-index_documentation(
-    vault_path="C:\\Path\\To\\Your\\Obsidian\\Vault",
-    force_reindex=False
-)
-```
+### Architecture
+- **CRAG Implementation**: Canvas-Relational Augmented Generation with visual knowledge mapping
+- **Focused Design**: Only 3 essential tools for maximum clarity
+- **MDD Integration**: Specialized support for Modular Development Documentation
+- **Recursive Search**: Automatically finds files in complex vault structures
+- **Persistent Storage**: External documentation indexed once, available always
 
-### 4. Семантический поиск
+### Storage Location
+External documentation is stored in:
+- Windows: `C:\Users\[Username]\.documentation_rag\`
+- macOS/Linux: `~/.documentation_rag/`
 
-```python
-# Поиск по документации
-search_documentation(
-    query="как создать natal chart",
-    vault_path="C:\\Path\\To\\Your\\Obsidian\\Vault",
-    limit=5
-)
-```
+Contains:
+- `chroma_db/` - Vector database for semantic search
+- `docs_metadata.json` - Documentation metadata
 
-## Пример использования с Claude
+## 🧪 Testing
 
-После настройки MCP вы можете использовать инструменты в диалоге с Claude:
-
-```
-Пользователь: Проанализируй структуру моего проекта в Canvas файле project.canvas
-
-Claude: Я помогу проанализировать ваш проект. Сначала мне нужно путь к вашему Obsidian vault.
-
-[Использует get_modular_documentation для парсинга Canvas]
-[Анализирует структуру узлов и связей]
-[Предоставляет понятное описание архитектуры проекта]
-```
-
-## Структура проекта
-
-```
-DoumentationRag/
-├── src/
-│   └── documentation_rag/
-│       ├── __init__.py
-│       ├── server.py          # Основной MCP сервер
-│       ├── canvas_parser.py   # Парсер Canvas файлов
-│       └── rag_engine.py      # RAG движок с ChromaDB
-├── pyproject.toml
-└── README.md
-```
-
-## Технические детали
-
-### Векторная база данных
-- Использует **ChromaDB** для локального хранения векторов
-- Модель эмбеддингов: `all-MiniLM-L6-v2` (быстрая и качественная)
-- Индекс сохраняется в папке `.rag_index` внутри vault
-
-### Чанкинг документов
-- Автоматическое разбиение больших файлов на фрагменты
-- Умное разделение по параграфам и предложениям
-- Максимальный размер чанка: 1000 символов
-
-### Контекстные эмбеддинги
-- Узлы индексируются с учетом их связей и типа
-- Включает информацию о цветовом кодировании
-- Сохраняет структурные отношения между элементами
-
-## Troubleshooting
-
-### Проблема: "ModuleNotFoundError: No module named 'mcp'"
+Test the core functionality:
 ```bash
-pip install mcp
+python test_mcp_client.py
 ```
 
-### Проблема: "ChromaDB connection error"
-- Убедитесь, что папка vault доступна для записи
-- Проверьте права доступа к папке `.rag_index`
-
-### Проблема: "Canvas file not found"
-- Убедитесь, что путь к vault указан правильно
-- Проверьте, что Canvas файл существует и доступен
-
-## Разработка
-
-Для разработки клонируйте репозиторий и установите в режиме разработки:
-
+Test specific components:
 ```bash
-git clone <repository>
-cd DoumentationRag
-pip install -e ".[dev]"
+# Test Canvas parsing
+python test_rag.py
+
+# Test external documentation search  
+python test_external_docs.py
 ```
 
-Для форматирования кода:
-```bash
-black src/
-```
+## 🔍 How It Works
 
-Для проверки типов:
-```bash
-mypy src/
-```
+1. **CRAG Canvas Parsing**: Uses specialized parser to understand Canvas node relationships, visual positioning, and MDD structure
+2. **Relational Context**: Maintains explicit relationships between documentation nodes rather than treating them as isolated chunks
+3. **Recursive File Discovery**: Automatically finds files throughout complex vault hierarchies  
+4. **Semantic Search**: Employs sentence-transformers for intelligent similarity-based search
+5. **Persistent Storage**: ChromaDB ensures external documentation remains available across sessions
 
-## Лицензия
+**CRAG vs Traditional RAG**: Instead of chunking text randomly, CRAG preserves the author's intended knowledge structure through visual Canvas relationships.
 
-MIT License - подробности в файле LICENSE.
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+**"No MCP tools available"**
+- Verify Python path in Claude Desktop config
+- Ensure all dependencies are installed
+- Restart Claude Desktop completely
+
+**"Canvas file not found"**  
+- Check vault path is correct
+- Ensure Canvas file has `.canvas` extension
+- File will be found automatically in any subfolder
+
+**"Search returns no results"**
+- External documentation must be pre-indexed
+- Check that ChromaDB has proper permissions
+- Try broader search terms
+
+### Getting Help
+
+- **Detailed Setup**: See [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
+- **Test Files**: Run test scripts to diagnose issues
+- **Logs**: Check Claude Desktop logs for specific error messages
+
+## 📋 System Requirements
+
+- Python 3.8+
+- Claude Desktop
+- ~500MB storage for ChromaDB and embeddings
+- Internet connection for initial model download
+
+---
+
+**Ready to enhance your documentation workflow with intelligent AI assistance!** 🚀
