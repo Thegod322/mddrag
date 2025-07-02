@@ -24,8 +24,10 @@ from mcp.types import (
     TextContent,
 )
 
+
 from .canvas_parser import CanvasParser
 from .external_docs_engine import ExternalDocsEngine
+from .vaultpicker_bridge import get_current_vault_path
 
 # Initialize the MCP server
 server = Server("documentation-rag")
@@ -46,14 +48,14 @@ async def handle_list_tools() -> List[Tool]:
                 "properties": {
                     "vault_path": {
                         "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
+                        "description": "Path to the Obsidian vault root directory (optional, auto from VaultPicker if not set)"
                     },
                     "canvas_file": {
                         "type": "string",
                         "description": "Name of the Canvas file (e.g., 'Documentation-rag_MDD.canvas'). The file will be found automatically in the vault."
                     }
                 },
-                "required": ["vault_path", "canvas_file"]
+                "required": ["canvas_file"]
             }
         ),
         Tool(
@@ -64,14 +66,14 @@ async def handle_list_tools() -> List[Tool]:
                 "properties": {
                     "vault_path": {
                         "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
+                        "description": "Path to the Obsidian vault root directory (optional, auto from VaultPicker if not set)"
                     },
                     "file_path": {
                         "type": "string",
                         "description": "Relative path to the file from vault root"
                     }
                 },
-                "required": ["vault_path", "file_path"]
+                "required": ["file_path"]
             }
         ),
         Tool(
@@ -102,19 +104,20 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
     global external_docs_engine
     
     if name == "get_modular_documentation":
-        vault_path = arguments["vault_path"]
+        vault_path = arguments.get("vault_path")
         canvas_file = arguments["canvas_file"]
-        
+        if not vault_path:
+            vault_path = get_current_vault_path()
+        if not vault_path:
+            return [TextContent(type="text", text="Vault path not found! Please set active vault in VaultPicker.")]
         try:
             parser = CanvasParser(vault_path)
             # Use new auto-search functionality
             canvas_data = parser.parse_canvas_auto(canvas_file)
-            
             return [TextContent(
                 type="text",
                 text=json.dumps(canvas_data, indent=2, ensure_ascii=False)
             )]
-            
         except Exception as e:
             return [TextContent(
                 type="text",
@@ -122,32 +125,30 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
             )]
     
     elif name == "get_file_content":
-        vault_path = arguments["vault_path"]
+        vault_path = arguments.get("vault_path")
         file_path = arguments["file_path"]
-        
+        if not vault_path:
+            vault_path = get_current_vault_path()
+        if not vault_path:
+            return [TextContent(type="text", text="Vault path not found! Please set active vault in VaultPicker.")]
         try:
             full_path = Path(vault_path) / file_path
-            
             if not full_path.exists():
                 return [TextContent(
                     type="text",
                     text=f"File not found: {file_path}"
                 )]
-            
             if not full_path.is_file():
                 return [TextContent(
                     type="text", 
                     text=f"Path is not a file: {file_path}"
                 )]
-            
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
             return [TextContent(
                 type="text",
                 text=content
             )]
-            
         except Exception as e:
             return [TextContent(
                 type="text",

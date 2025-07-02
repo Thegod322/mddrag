@@ -30,9 +30,11 @@ from mcp.types import (
 from pydantic import AnyUrl
 from sentence_transformers import SentenceTransformer
 
+
 from documentation_rag.canvas_parser import CanvasParser
 from documentation_rag.rag_engine import RAGEngine
 from documentation_rag.external_docs_engine import ExternalDocsEngine
+from documentation_rag.vaultpicker_bridge import get_current_vault_path
 
 # Initialize the MCP server
 server = Server("documentation-rag")
@@ -55,14 +57,14 @@ async def handle_list_tools() -> List[Tool]:
                 "properties": {
                     "vault_path": {
                         "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
+                        "description": "Path to the Obsidian vault root directory (optional, auto from VaultPicker if not set)"
                     },
                     "canvas_file": {
                         "type": "string",
                         "description": "Relative path to the Canvas file from vault root (e.g., 'project.canvas')"
                     }
                 },
-                "required": ["vault_path", "canvas_file"]
+                "required": ["canvas_file"]
             }
         ),
         Tool(
@@ -73,14 +75,14 @@ async def handle_list_tools() -> List[Tool]:
                 "properties": {
                     "vault_path": {
                         "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
+                        "description": "Path to the Obsidian vault root directory (optional, auto from VaultPicker if not set)"
                     },
                     "file_path": {
                         "type": "string",
                         "description": "Relative path to the file from vault root"
                     }
                 },
-                "required": ["vault_path", "file_path"]
+                "required": ["file_path"]
             }
         ),
         Tool(
@@ -91,7 +93,7 @@ async def handle_list_tools() -> List[Tool]:
                 "properties": {
                     "vault_path": {
                         "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
+                        "description": "Path to the Obsidian vault root directory (optional, auto from VaultPicker if not set)"
                     },
                     "force_reindex": {
                         "type": "boolean",
@@ -99,7 +101,7 @@ async def handle_list_tools() -> List[Tool]:
                         "default": False
                     }
                 },
-                "required": ["vault_path"]
+                "required": []
             }
         ),
         Tool(
@@ -114,7 +116,7 @@ async def handle_list_tools() -> List[Tool]:
                     },
                     "vault_path": {
                         "type": "string",
-                        "description": "Path to the Obsidian vault root directory"
+                        "description": "Path to the Obsidian vault root directory (optional, auto from VaultPicker if not set)"
                     },
                     "limit": {
                         "type": "integer", 
@@ -122,7 +124,7 @@ async def handle_list_tools() -> List[Tool]:
                         "default": 5
                     }
                 },
-                "required": ["query", "vault_path"]
+                "required": ["query"]
             }
         ),
         
@@ -226,18 +228,19 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
     
     # === Obsidian Canvas / MDD Tools ===
     if name == "get_modular_documentation":
-        vault_path = arguments["vault_path"]
+        vault_path = arguments.get("vault_path")
         canvas_file = arguments["canvas_file"]
-        
+        if not vault_path:
+            vault_path = get_current_vault_path()
+        if not vault_path:
+            return [TextContent(type="text", text="Vault path not found! Please set active vault in VaultPicker.")]
         try:
             parser = CanvasParser(vault_path)
             canvas_data = parser.parse_canvas_file(canvas_file)
-            
             return [TextContent(
                 type="text",
                 text=json.dumps(canvas_data, indent=2, ensure_ascii=False)
             )]
-            
         except Exception as e:
             return [TextContent(
                 type="text",
@@ -245,32 +248,30 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
             )]
     
     elif name == "get_file_content":
-        vault_path = arguments["vault_path"]
+        vault_path = arguments.get("vault_path")
         file_path = arguments["file_path"]
-        
+        if not vault_path:
+            vault_path = get_current_vault_path()
+        if not vault_path:
+            return [TextContent(type="text", text="Vault path not found! Please set active vault in VaultPicker.")]
         try:
             full_path = Path(vault_path) / file_path
-            
             if not full_path.exists():
                 return [TextContent(
                     type="text",
                     text=f"File not found: {file_path}"
                 )]
-            
             if not full_path.is_file():
                 return [TextContent(
                     type="text", 
                     text=f"Path is not a file: {file_path}"
                 )]
-            
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
             return [TextContent(
                 type="text",
                 text=content
             )]
-            
         except Exception as e:
             return [TextContent(
                 type="text",
@@ -278,9 +279,12 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
             )]
     
     elif name == "index_obsidian_vault":
-        vault_path = arguments["vault_path"]
+        vault_path = arguments.get("vault_path")
         force_reindex = arguments.get("force_reindex", False)
-        
+        if not vault_path:
+            vault_path = get_current_vault_path()
+        if not vault_path:
+            return [TextContent(type="text", text="Vault path not found! Please set active vault in VaultPicker.")]
         try:
             if not rag_engine:
                 rag_engine = RAGEngine(vault_path)
@@ -289,7 +293,6 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
                 type="text",
                 text=f"Successfully indexed {indexed_count} documents from Obsidian vault: {vault_path}"
             )]
-            
         except Exception as e:
             return [TextContent(
                 type="text",
@@ -298,9 +301,12 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
     
     elif name == "search_obsidian_docs":
         query = arguments["query"]
-        vault_path = arguments["vault_path"]
+        vault_path = arguments.get("vault_path")
         limit = arguments.get("limit", 5)
-        
+        if not vault_path:
+            vault_path = get_current_vault_path()
+        if not vault_path:
+            return [TextContent(type="text", text="Vault path not found! Please set active vault in VaultPicker.")]
         try:
             if not rag_engine:
                 rag_engine = RAGEngine(vault_path)
@@ -322,7 +328,6 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
                 type="text",
                 text="\n".join(formatted_results)
             )]
-            
         except Exception as e:
             return [TextContent(
                 type="text",
