@@ -88,7 +88,7 @@ Search for "CharacterBody3D movement" in the documentation
 ## 🔧 Technical Details
 
 ### Architecture
-- **CRAG Implementation**: Canvas-Relational Augmented Generation with visual knowledge mapping
+- **MAG Implementation**: Model Augmented Generation with visual knowledge mapping
 - **Focused Design**: Only 3 essential tools for maximum clarity
 - **MDD Integration**: Specialized support for Modular Development Documentation
 - **Recursive Search**: Automatically finds files in complex vault structures
@@ -121,13 +121,13 @@ python test_external_docs.py
 
 ## 🔍 How It Works
 
-1. **CRAG Canvas Parsing**: Uses specialized parser to understand Canvas node relationships, visual positioning, and MDD structure
+1. **MAG Canvas Parsing**: Uses specialized parser to understand Canvas node relationships, visual positioning, and MDD structure
 2. **Relational Context**: Maintains explicit relationships between documentation nodes rather than treating them as isolated chunks
 3. **Recursive File Discovery**: Automatically finds files throughout complex vault hierarchies  
 4. **Semantic Search**: Employs sentence-transformers for intelligent similarity-based search
 5. **Persistent Storage**: ChromaDB ensures external documentation remains available across sessions
 
-**CRAG vs Traditional RAG**: Instead of chunking text randomly, CRAG preserves the author's intended knowledge structure through visual Canvas relationships.
+**MAG vs Traditional RAG**: Instead of chunking text randomly, MAG preserves the author's intended knowledge structure through visual Canvas relationships.
 
 ## 🛠️ Troubleshooting
 
