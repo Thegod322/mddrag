@@ -1,6 +1,6 @@
 # Documentation RAG MCP Server
 
-An MCP (Model Context Protocol) server that implements **CRAG (Canvas-Relational Augmented Generation)** - a novel approach to RAG that uses visual Canvas structures with explicit node relationships, rather than traditional text chunking.
+An MCP (Model Context Protocol) server that implements **MAG (Model Augmented Generation)** - a novel approach to RAG that uses visual Canvas structures with explicit node relationships, rather than traditional text chunking.
 
 Provides intelligent access to your documentation through three focused tools:
 
@@ -10,7 +10,7 @@ Provides intelligent access to your documentation through three focused tools:
 
 ## ✨ Key Features
 
-- **CRAG Architecture**: Visual knowledge mapping through Canvas with explicit relationships
+- **MAG Architecture**: Visual knowledge mapping through Canvas - MDD with explicit relationships
 - **Smart Canvas Parsing**: Understands Obsidian Canvas files with automatic recursive search
 - **MDD Support**: Optimized for Modular Development Documentation workflows
 - **Flexible File Access**: Read any file from your vault with simple file name specification
