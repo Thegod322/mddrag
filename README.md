@@ -1,6 +1,6 @@
 # Documentation RAG MCP Server
 
-An MCP (Model Context Protocol) server that implements **CRAG (Canvas-Relational Augmented Generation)** - a novel approach to RAG that uses visual Canvas structures with explicit node relationships, rather than traditional text chunking.
+An MCP (Model Context Protocol) server that implements **MAG (Model Augmented Generation)** - a novel approach to RAG that uses visual Canvas structures with explicit node relationships, rather than traditional text chunking.
 
 Provides intelligent access to your documentation through three focused tools:
 
@@ -10,12 +10,13 @@ Provides intelligent access to your documentation through three focused tools:
 
 ## ✨ Key Features
 
-- **CRAG Architecture**: Visual knowledge mapping through Canvas with explicit relationships
+- **MAG Architecture(Model augmented generation)**: Visual knowledge mapping through Canvas with explicit relationships
 - **Smart Canvas Parsing**: Understands Obsidian Canvas files with automatic recursive search
 - **MDD Support**: Optimized for Modular Development Documentation workflows
 - **Flexible File Access**: Read any file from your vault with simple file name specification
 - **External Documentation Search**: Search across pre-indexed libraries, frameworks, and tools
-- **Simple UX**: Just specify vault path and file names - the server handles the rest
+- **Seamless VaultPicker Integration**: No need to specify vault path manually — MDDrag always uses the active vault from VaultPicker (VS Code extension)
+- **Simple UX**: Just specify file names — the server automatically uses the active vault from VaultPicker
 
 ## 🚀 Quick Installation
 
@@ -44,10 +45,10 @@ The server provides exactly **3 focused tools**:
 Parse and understand Obsidian Canvas files (.canvas) with CRAG and MDD support.
 
 **Parameters:**
-- `vault_path`: Path to your Obsidian vault
 - `canvas_file`: Name of the Canvas file (e.g., "MyProject.canvas")
+- `vault_path` (optional): If not set, will be auto-filled from VaultPicker
 
-**CRAG Features**: Extracts not just content, but visual relationships and node positioning for contextual understanding.
+**MAG Features**: Extracts not just content, but visual relationships and node positioning for contextual understanding.
 
 **New UX**: Just specify the file name! The server automatically searches your entire vault recursively to find the Canvas file.
 
@@ -55,8 +56,8 @@ Parse and understand Obsidian Canvas files (.canvas) with CRAG and MDD support.
 Read content from any file referenced in your documentation.
 
 **Parameters:**
-- `vault_path`: Path to your Obsidian vault
 - `file_path`: Relative path to the file from vault root
+- `vault_path` (optional): If not set, will be auto-filled from VaultPicker
 
 ### 3. `d94_search_documentation`
 Semantic search across pre-indexed external documentation.
@@ -71,13 +72,13 @@ Semantic search across pre-indexed external documentation.
 
 ### Parse Your Canvas Documentation
 ```
-Parse the canvas file "ProjectDocs.canvas" from my vault at "C:/MyVault"
+Parse the canvas file "ProjectDocs.canvas"
 ```
-The server automatically finds the Canvas file anywhere in your vault structure.
+The server automatically finds the Canvas file anywhere in your active vault structure (no need to specify the path).
 
 ### Read Documentation Files  
 ```
-Get the content of "API-Reference.md" from my vault at "C:/MyVault"
+Get the content of "API-Reference.md"
 ```
 
 ### Search External Documentation
@@ -92,6 +93,7 @@ Search for "CharacterBody3D movement" in the documentation
 - **Focused Design**: Only 3 essential tools for maximum clarity
 - **MDD Integration**: Specialized support for Modular Development Documentation
 - **Recursive Search**: Automatically finds files in complex vault structures
+- **VaultPicker Sync**: Always uses the active vault from VaultPicker (no manual path input)
 - **Persistent Storage**: External documentation indexed once, available always
 
 ### Storage Location
@@ -123,9 +125,10 @@ python test_external_docs.py
 
 1. **CRAG Canvas Parsing**: Uses specialized parser to understand Canvas node relationships, visual positioning, and MDD structure
 2. **Relational Context**: Maintains explicit relationships between documentation nodes rather than treating them as isolated chunks
-3. **Recursive File Discovery**: Automatically finds files throughout complex vault hierarchies  
-4. **Semantic Search**: Employs sentence-transformers for intelligent similarity-based search
-5. **Persistent Storage**: ChromaDB ensures external documentation remains available across sessions
+3. **VaultPicker Integration**: Always uses the active vault from VaultPicker (VS Code extension)
+4. **Recursive File Discovery**: Automatically finds files throughout complex vault hierarchies  
+5. **Semantic Search**: Employs sentence-transformers for intelligent similarity-based search
+6. **Persistent Storage**: ChromaDB ensures external documentation remains available across sessions
 
 **CRAG vs Traditional RAG**: Instead of chunking text randomly, CRAG preserves the author's intended knowledge structure through visual Canvas relationships.
 
@@ -139,9 +142,9 @@ python test_external_docs.py
 - Restart Claude Desktop completely
 
 **"Canvas file not found"**  
-- Check vault path is correct
 - Ensure Canvas file has `.canvas` extension
-- File will be found automatically in any subfolder
+- File will be found automatically in any subfolder of your active vault
+- Make sure VaultPicker extension is installed and active vault is set in VS Code
 
 **"Search returns no results"**
 - External documentation must be pre-indexed
@@ -163,4 +166,4 @@ python test_external_docs.py
 
 ---
 
-**Ready to enhance your documentation workflow with intelligent AI assistance!** 🚀
+**Ready to enhance your documentation workflow with intelligent AI assistance and seamless VaultPicker sync!** 🚀

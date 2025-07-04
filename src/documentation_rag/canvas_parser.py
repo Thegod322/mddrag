@@ -31,23 +31,29 @@ class CanvasParser:
             raise ValueError(f"Vault root does not exist: {vault_root}")
     
     def clean_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
-        """Clean and structure node data."""
-        result = {
-            "id": node["id"],
-            "type": node["type"]
-        }
-        
+        """
+        Clean and structure node data, including coordinates for group detection.
+        For group nodes, x/y/width/height are preserved. For other nodes, these fields are only used for group membership detection and removed from output.
+        """
+        if node.get("type") == "group":
+            # Only keep id, type, label for group nodes
+            result = {"id": node["id"], "type": node["type"]}
+            if "label" in node:
+                result["label"] = node["label"]
+            return result
+        result = {"id": node["id"], "type": node["type"]}
         if "text" in node:
             result["text"] = node["text"]
-        
         if "color" in node:
             result["color"] = node["color"]
         else:
             result["color"] = "0"
-        
         if "file" in node:
             result["file"] = node["file"]
-        
+        # Add coordinates and size if present (for group and other nodes)
+        for key in ("x", "y", "width", "height"):
+            if key in node:
+                result[key] = node[key]
         return result
     
     def clean_edge(self, edge: Dict[str, Any]) -> Dict[str, Any]:
@@ -65,32 +71,62 @@ class CanvasParser:
     
     def parse_canvas_file(self, canvas_path: str) -> Dict[str, Any]:
         """
-        Parse a Canvas file and return structured data.
-        
-        Args:
-            canvas_path: Relative path to Canvas file from vault root
-            
-        Returns:
-            Dictionary containing parsed canvas data
+        Parse a Canvas file and return structured data, including group membership.
+        Each node will have a 'group' field if it is inside a group node (by coordinates).
         """
         full_path = self.vault_root / canvas_path
-        
         if not full_path.exists():
             raise FileNotFoundError(f"Canvas file not found: {canvas_path}")
-        
         if not full_path.suffix == '.canvas':
             raise ValueError(f"File is not a Canvas file: {canvas_path}")
-        
         try:
             with open(full_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in Canvas file: {e}")
-        
+
         # Parse nodes and edges
-        nodes = [self.clean_node(n) for n in data.get("nodes", [])]
+        raw_nodes = data.get("nodes", [])
         edges = [self.clean_edge(e) for e in data.get("edges", [])]
-        
+
+        # Identify group nodes and build group bounding boxes
+        groups = []
+        for n in raw_nodes:
+            if n.get("type") == "group":
+                groups.append({
+                    "id": n["id"],
+                    "x": n["x"],
+                    "y": n["y"],
+                    "width": n["width"],
+                    "height": n["height"]
+                })
+
+        # For each node, determine if it is inside a group
+        def find_group_for_node(node):
+            if node.get("type") == "group":
+                return None
+            x = node.get("x")
+            y = node.get("y")
+            if x is None or y is None:
+                return None
+            for group in groups:
+                gx, gy, gw, gh = group["x"], group["y"], group["width"], group["height"]
+                if gx <= x <= gx + gw and gy <= y <= gy + gh:
+                    return group["id"]
+            return None
+
+        nodes = []
+        for n in raw_nodes:
+            node = self.clean_node(n)
+            group_id = find_group_for_node(n)
+            if group_id is not None:
+                node["group"] = group_id
+            # Remove x/y/width/height from output for non-group nodes for clarity
+            if node.get("type") != "group":
+                for key in ("x", "y", "width", "height"):
+                    node.pop(key, None)
+            nodes.append(node)
+
         result = {
             "color_legend": self.COLOR_LEGEND,
             "canvas_path": canvas_path,
@@ -103,7 +139,6 @@ class CanvasParser:
                 "color_distribution": self._get_color_distribution(nodes)
             }
         }
-        
         return result
     
     def find_canvas_file(self, canvas_filename: str) -> Optional[str]:
