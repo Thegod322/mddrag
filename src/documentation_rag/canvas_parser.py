@@ -101,27 +101,34 @@ class CanvasParser:
                     "height": n["height"]
                 })
 
-        # For each node, determine if it is inside a group
-        def find_group_for_node(node):
+        # Для каждой ноды определяем все группы, в которых она находится.
+        # Если нода не состоит ни в одной группе, поле group_refs не добавляется (KISS для LLM).
+        def find_groups_for_node(node):
+            """
+            Возвращает список id всех групп, в которых находится нода (по координатам).
+            Если нода — группа, возвращает пустой список.
+            """
             if node.get("type") == "group":
-                return None
+                return []
             x = node.get("x")
             y = node.get("y")
             if x is None or y is None:
-                return None
+                return []
+            group_ids = []
             for group in groups:
                 gx, gy, gw, gh = group["x"], group["y"], group["width"], group["height"]
                 if gx <= x <= gx + gw and gy <= y <= gy + gh:
-                    return group["id"]
-            return None
+                    group_ids.append(group["id"])
+            return group_ids
 
         nodes = []
         for n in raw_nodes:
             node = self.clean_node(n)
-            group_id = find_group_for_node(n)
-            if group_id is not None:
-                node["group"] = group_id
-            # Remove x/y/width/height from output for non-group nodes for clarity
+            group_ids = find_groups_for_node(n)
+            # Если нода состоит хотя бы в одной группе — добавляем group_refs
+            if group_ids:
+                node["group_refs"] = group_ids
+            # Для чистоты вывода: удаляем x/y/width/height у всех, кроме групп
             if node.get("type") != "group":
                 for key in ("x", "y", "width", "height"):
                     node.pop(key, None)

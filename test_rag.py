@@ -96,7 +96,25 @@ async def test_canvas_parsing():
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(canvas_data, f, indent=2, ensure_ascii=False)
         print(f"\nParsed data saved to: {output_file}")
-        
+
+        # --- Тест: проверка множественного членства и отсутствия поля group_refs ---
+        print("\n=== Проверка множественного членства и group_refs ===")
+        nodes = canvas_data["nodes"]
+        multi_group_count = 0
+        no_group_field_count = 0
+        for node in nodes:
+            if node.get("type") == "group":
+                continue
+            if "group_refs" in node:
+                if isinstance(node["group_refs"], list) and len(node["group_refs"]) > 1:
+                    multi_group_count += 1
+            else:
+                no_group_field_count += 1
+        print(f"Нод с несколькими группами: {multi_group_count}")
+        print(f"Нод без поля group_refs (не в группе): {no_group_field_count}")
+        assert all(("group_refs" not in node) or (isinstance(node["group_refs"], list) and len(node["group_refs"]) > 0) for node in nodes if node.get("type") != "group"), "Некорректные значения group_refs!"
+        print("Проверка пройдена!")
+
     except Exception as e:
         print(f"Error parsing Canvas file: {e}")
         import traceback
