@@ -2,6 +2,7 @@
 
 An MCP (Model Context Protocol) server that implements **MAG (Model Augmented Generation)** - a novel approach to RAG that uses visual Canvas structures with explicit node relationships, rather than traditional text chunking.
 
+
 Provides intelligent access to your documentation through three focused tools:
 
 1. **MDD Canvas Parsing** - Parse and understand Obsidian Canvas-based Modular Development Documentation
@@ -89,7 +90,7 @@ Search for "CharacterBody3D movement" in the documentation
 ## 🔧 Technical Details
 
 ### Architecture
-- **CRAG Implementation**: Canvas-Relational Augmented Generation with visual knowledge mapping
+- **MAG Implementation**: Model Augmented Generation with visual knowledge mapping
 - **Focused Design**: Only 3 essential tools for maximum clarity
 - **MDD Integration**: Specialized support for Modular Development Documentation
 - **Recursive Search**: Automatically finds files in complex vault structures
@@ -123,14 +124,14 @@ python test_external_docs.py
 
 ## 🔍 How It Works
 
-1. **CRAG Canvas Parsing**: Uses specialized parser to understand Canvas node relationships, visual positioning, and MDD structure
+1. **MAG Canvas Parsing**: Uses specialized parser to understand Canvas node relationships, visual positioning, and MDD structure
 2. **Relational Context**: Maintains explicit relationships between documentation nodes rather than treating them as isolated chunks
 3. **VaultPicker Integration**: Always uses the active vault from VaultPicker (VS Code extension)
 4. **Recursive File Discovery**: Automatically finds files throughout complex vault hierarchies  
 5. **Semantic Search**: Employs sentence-transformers for intelligent similarity-based search
 6. **Persistent Storage**: ChromaDB ensures external documentation remains available across sessions
 
-**CRAG vs Traditional RAG**: Instead of chunking text randomly, CRAG preserves the author's intended knowledge structure through visual Canvas relationships.
+**MAG vs Traditional RAG**: Instead of chunking text randomly, MAG preserves the author's intended knowledge structure through visual Canvas relationships.
 
 ## 🛠️ Troubleshooting
 
