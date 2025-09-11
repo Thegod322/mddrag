@@ -16,7 +16,7 @@ from pathlib import Path
 src_dir = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_dir))
 
-# Import and run the unified server
+# Import and run the simplified server with 4 core tools
 from documentation_rag.server import main
 import asyncio
 

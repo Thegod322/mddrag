@@ -2,10 +2,11 @@
 """
 Documentation RAG MCP Server (Simplified)
 
-This server provides a simple RAG interface for LLM agents with 3 core tools:
+This server provides a simple RAG interface for LLM agents with 4 core tools:
 1. get_modular_documentation - Parse MDD Canvas files
-2. get_file_content - Read vault files 
-3. search_documentation - Search external docs in ChromaDB
+2. print_mdd - Parse and save MDD Canvas files to .MDD files
+3. get_file_content - Read vault files 
+4. search_documentation - Search external docs in ChromaDB
 """
 
 import asyncio
@@ -14,6 +15,12 @@ import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Add the src directory to Python path for imports
+current_dir = Path(__file__).parent
+src_dir = current_dir.parent
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
 
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
@@ -24,10 +31,10 @@ from mcp.types import (
     TextContent,
 )
 
-
-from .canvas_parser import CanvasParser
-from .external_docs_engine import ExternalDocsEngine
-from .vaultpicker_bridge import get_current_vault_path
+# Import modules using absolute imports after setting up the path
+from documentation_rag.canvas_parser import CanvasParser
+from documentation_rag.external_docs_engine import ExternalDocsEngine
+from documentation_rag.vaultpicker_bridge import get_current_vault_path
 
 # Initialize the MCP server
 server = Server("documentation-rag")
@@ -38,7 +45,7 @@ external_docs_engine: Optional[ExternalDocsEngine] = None
 
 @server.list_tools()
 async def handle_list_tools() -> List[Tool]:
-    """List the 3 core RAG tools for LLM agents."""
+    """List the 4 core RAG tools for LLM agents."""
     return [
         Tool(
             name="get_modular_documentation",
@@ -56,6 +63,28 @@ async def handle_list_tools() -> List[Tool]:
                     }
                 },
                 "required": ["canvas_file"]
+            }
+        ),
+        Tool(
+            name="print_mdd",
+            description="Parse modular documentation from Obsidian Canvas file and save it to a specified output path with .MDD extension. Works exactly like get_modular_documentation but saves to file instead of returning data.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "vault_path": {
+                        "type": "string",
+                        "description": "Path to the Obsidian vault root directory (optional, auto from VaultPicker if not set)"
+                    },
+                    "canvas_file": {
+                        "type": "string",
+                        "description": "Name of the Canvas file (e.g., 'Documentation-rag_MDD.canvas'). The file will be found automatically in the vault."
+                    },
+                    "output_path": {
+                        "type": "string",
+                        "description": "Path where to save the MDD file. The .MDD extension will be automatically added if not present."
+                    }
+                },
+                "required": ["canvas_file", "output_path"]
             }
         ),
         Tool(
@@ -100,7 +129,7 @@ async def handle_list_tools() -> List[Tool]:
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle the 3 core tool calls."""
+    """Handle the 4 core tool calls."""
     global external_docs_engine
     
     if name == "get_modular_documentation":
@@ -122,6 +151,46 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
             return [TextContent(
                 type="text",
                 text=f"Error parsing Canvas file: {str(e)}"
+            )]
+    
+    elif name == "print_mdd":
+        vault_path = arguments.get("vault_path")
+        canvas_file = arguments["canvas_file"]
+        output_path = arguments["output_path"]
+        
+        if not vault_path:
+            vault_path = get_current_vault_path()
+        if not vault_path:
+            return [TextContent(type="text", text="Vault path not found! Please set active vault in VaultPicker.")]
+        
+        # Ensure output path has .MDD extension
+        if not output_path.lower().endswith('.mdd'):
+            output_path = output_path + '.MDD'
+        
+        try:
+            parser = CanvasParser(vault_path)
+            # Use new auto-search functionality
+            canvas_data = parser.parse_canvas_auto(canvas_file)
+            
+            # Convert to JSON and save to file
+            json_data = json.dumps(canvas_data, indent=2, ensure_ascii=False)
+            
+            # Create directory if it doesn't exist
+            output_file = Path(output_path)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Write to file
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(json_data)
+            
+            return [TextContent(
+                type="text",
+                text=f"MDD successfully saved to: {output_path}"
+            )]
+        except Exception as e:
+            return [TextContent(
+                type="text",
+                text=f"Error processing or saving MDD file: {str(e)}"
             )]
     
     elif name == "get_file_content":
@@ -194,7 +263,7 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
     else:
         return [TextContent(
             type="text",
-            text=f"Unknown tool: {name}. Available tools: get_modular_documentation, get_file_content, search_documentation"
+            text=f"Unknown tool: {name}. Available tools: get_modular_documentation, print_mdd, get_file_content, search_documentation"
         )]
 
 

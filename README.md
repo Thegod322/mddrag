@@ -40,7 +40,7 @@ Provides intelligent access to your documentation through three focused tools:
 
 ## 🛠️ Available Tools
 
-The server provides exactly **3 focused tools**:
+The server provides exactly **4 focused tools**:
 
 ### 1. `d94_get_modular_documentation`
 Parse and understand Obsidian Canvas files (.canvas) with CRAG and MDD support.
@@ -53,14 +53,27 @@ Parse and understand Obsidian Canvas files (.canvas) with CRAG and MDD support.
 
 **New UX**: Just specify the file name! The server automatically searches your entire vault recursively to find the Canvas file.
 
-### 2. `d94_get_file_content`  
+### 2. `print_mdd`
+Parse and save modular documentation from Obsidian Canvas file to a .MDD file. Works exactly like `get_modular_documentation` but saves the parsed data to a file instead of returning it.
+
+**Parameters:**
+- `canvas_file`: Name of the Canvas file (e.g., "MyProject.canvas") 
+- `output_path`: Path where to save the MDD file (automatically adds .MDD extension if not present)
+- `vault_path` (optional): If not set, will be auto-filled from VaultPicker
+
+**Features**: 
+- Automatically adds .MDD extension if not provided
+- Creates output directories if they don't exist
+- Preserves all MDD structure and relationships in the saved file
+
+### 3. `d94_get_file_content`  
 Read content from any file referenced in your documentation.
 
 **Parameters:**
 - `file_path`: Relative path to the file from vault root
 - `vault_path` (optional): If not set, will be auto-filled from VaultPicker
 
-### 3. `d94_search_documentation`
+### 4. `d94_search_documentation`
 Semantic search across pre-indexed external documentation.
 
 **Parameters:**
@@ -76,6 +89,12 @@ Semantic search across pre-indexed external documentation.
 Parse the canvas file "ProjectDocs.canvas"
 ```
 The server automatically finds the Canvas file anywhere in your active vault structure (no need to specify the path).
+
+### Save Canvas Documentation to MDD File
+```
+Save the canvas file "ProjectDocs.canvas" to "/home/user/Documents/project.MDD"
+```
+The tool automatically adds the .MDD extension if not provided and creates any necessary directories.
 
 ### Read Documentation Files  
 ```
