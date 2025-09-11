@@ -16,6 +16,12 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Add the src directory to Python path for imports
+current_dir = Path(__file__).parent
+src_dir = current_dir.parent
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
@@ -25,10 +31,10 @@ from mcp.types import (
     TextContent,
 )
 
-
-from .canvas_parser import CanvasParser
-from .external_docs_engine import ExternalDocsEngine
-from .vaultpicker_bridge import get_current_vault_path
+# Import modules using absolute imports after setting up the path
+from documentation_rag.canvas_parser import CanvasParser
+from documentation_rag.external_docs_engine import ExternalDocsEngine
+from documentation_rag.vaultpicker_bridge import get_current_vault_path
 
 # Initialize the MCP server
 server = Server("documentation-rag")
